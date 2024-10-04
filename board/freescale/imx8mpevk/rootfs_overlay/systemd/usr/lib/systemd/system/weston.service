@@ -1,0 +1,60 @@
+[Unit]
+Description=Weston, a Wayland compositor, as a user service
+Documentation=man:weston(1) man:weston.ini(5)
+Documentation=https://wayland.freedesktop.org/
+
+# Make sure we are started after logins are permitted.
+Requires=systemd-user-sessions.service
+After=systemd-user-sessions.service
+
+# D-Bus is necessary for contacting logind. Logind is required.
+Wants=dbus.socket
+After=dbus.socket
+
+# Activate using a systemd socket
+Requires=weston.socket
+# After=weston.socket
+
+
+# Since we are part of the graphical session, make sure we are started before
+# it is complete.
+Before=graphical.target
+
+# Prevent starting on systems without virtual consoles, Weston requires one
+# for now.
+ConditionPathExists=/dev/tty0
+
+[Service]
+# Requires systemd-notify.so Weston plugin.
+Type=notify
+#TimeoutStartSec=60
+#WatchdogSec=20
+# Defaults to journal
+StandardOutput=journal
+StandardError=journal
+
+EnvironmentFile=/etc/default/weston
+Environment="XDG_RUNTIME_DIR=/home/weston"
+
+# The user to run Weston as.
+User=root
+Group=root
+
+# Make sure the working directory is the users home directory
+WorkingDirectory=/home/weston
+
+# Set up a full user session for the user, required by Weston.
+# PAMName=weston-autologin
+
+# add a ~/.config/weston.ini and weston will pick-it up
+ExecStart=/usr/bin/weston --backend=drm --renderer=gl --modules=systemd-notify.so
+# ExecStart=/usr/bin/weston
+
+# A virtual terminal is needed.
+TTYPath=/dev/tty7
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+
+[Install]
+WantedBy=graphical.target
